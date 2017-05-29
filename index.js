@@ -1,10 +1,13 @@
 const fetch = require("isomorphic-fetch")
 const urlTools = require("url")
 const traverse = require("traverse")
-const { zipObject, map, has, flatten } = require('lodash')
-const jsdom = require("jsdom")
-const { JSDOM } = jsdom
+const { zipObject, map, has, flatten } = require("lodash")
 
+let jsdom, JSDOM
+if (typeof window === "undefined") {
+  jsdom = require("jsdom")
+  JSDOM = jsdom.JSDOM
+}
 /* 
   Deep search an object for a certain key
    -> returns array of objects containing key
@@ -51,8 +54,10 @@ const getPriceInfo = async (url, productId) => {
 const parseColumn = column => Array.from(column).map(tr => tr.textContent)
 
 const parseHTMLTable = html => {
-  const dom = new JSDOM(html)
-  const { document } = dom.window
+  if (typeof window === "undefined") {
+    const dom = new JSDOM(html)
+    var { document } = dom.window
+  }
 
   const labels = parseColumn(
     document.querySelectorAll("tr > td:nth-of-type(1)")

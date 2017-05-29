@@ -1,17 +1,18 @@
 const fetch = require("isomorphic-fetch")
 const urlTools = require("url")
 const traverse = require("traverse")
+const { zipObject, map, has, flatten } = require('lodash')
 const jsdom = require("jsdom")
-const _ = require("lodash")
+const { JSDOM } = jsdom
 
 /* 
   Deep search an object for a certain key
    -> returns array of objects containing key
 */
 function findKey(obj, key) {
-  if (_.has(obj, key)) return [obj]
-  return _.flatten(
-    _.map(obj, function(v) {
+  if (has(obj, key)) return [obj]
+  return flatten(
+    map(obj, function(v) {
       return typeof v == "object" ? findKey(v, key) : []
     }),
     true
@@ -49,26 +50,22 @@ const getPriceInfo = async (url, productId) => {
 
 const parseColumn = column => Array.from(column).map(tr => tr.textContent)
 
-const parseHTMLTable = html =>
-  new Promise(resolve => {
-    jsdom.env(html, [], (err, window) => {
-      const { document } = window
+const parseHTMLTable = html => {
+  const dom = new JSDOM(html)
+  const { document } = dom.window
 
-      const labels = parseColumn(
-        document.querySelectorAll("tr > td:nth-of-type(1)")
-      )
+  const labels = parseColumn(
+    document.querySelectorAll("tr > td:nth-of-type(1)")
+  )
 
-      const values = parseColumn(
-        document.querySelectorAll("tr > td:nth-of-type(2)")
-      )
-
-      resolve(_.zipObject(labels, values))
-    })
-  })
+  const values = parseColumn(
+    document.querySelectorAll("tr > td:nth-of-type(2)")
+  )
+  return zipObject(labels, values)
+}
 
 const getNutritionFacts = async url => {
   const json = await getJSON(url)
-  // console.log(json)
   let compositionString = ""
 
   traverse(json._embedded.lanes).forEach(function() {
